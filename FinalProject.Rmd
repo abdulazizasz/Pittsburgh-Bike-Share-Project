@@ -185,7 +185,6 @@ na_data
 
 bike$FromStationName[which(is.na(bike$FromStationId))]
 
-
 bike$FromStationId[which(is.na(bike$FromStationName))]
 
 ## I guss we should just drop them
@@ -302,7 +301,7 @@ stoptime <- stoptime %>% count(ToStationId, StopHour, StopDay, StopMonth, StopYe
 aggregate_starttime_hour <- starttime %>% 
   group_by(FromStationId,StartHour,StartDay,StartMonth,StartYear) %>% 
   summarise_each(funs(sum), n) %>% 
-  arrange(desc(n))
+  arrange(StartYear, StartMonth)
 
 aggregate_stoptime_hour <- stoptime %>%
   group_by(ToStationId,StopHour, StopDay, StopMonth, StopYear) %>%
@@ -356,12 +355,15 @@ weather_holidays$Types <- mapvalues(weather_holidays$Types, from = c('Sunny','Ra
 ### This is just used for the prediction 
 
 bike_final <-merge(aggregate_starttime_hour, weather_holidays, by.x = c('StartDay','StartMonth','StartYear'), by.y = c('Day','Month','Year'))
+bike_final <- arrange(bike_final,StartYear,StartMonth, StartDay, StartHour)
+
 
 ```
 
 ```{r}
 
-## For classification we need two separete files to find out the unbalance problem 
+## For classification we need two separete files to find out the unbalance problem
+## bike_starttime and bike_stoptime
 
 bike_starttime <- merge(aggregate_starttime_day, weather_holidays, by.x = c('StartDay','StartMonth','StartYear'), by.y = c('Day','Month','Year'))
 bike_starttime <- arrange(bike_starttime, StartYear, StartMonth, StartDay)
@@ -369,6 +371,55 @@ bike_starttime <- arrange(bike_starttime, StartYear, StartMonth, StartDay)
 
 bike_stoptime <- merge(aggregate_stoptime_day, weather_holidays, by.x = c('StopDay','StopMonth','StopYear'), by.y = c('Day','Month','Year'))
 bike_stoptime <- arrange(bike_stoptime, StopYear, StopMonth, StopDay)
+
+
+####### Not Right - Must be fixed #####
+#######################
+bikeTest<-merge(bike_starttime, stations, by.x = "FromStationId", by.y = "StationNum")
+bike_starttime$diff <- bike_starttime$n- bike_stoptime$n
+bikeTest$rentedBikes<- bikeTest$diff/bikeTest$RackQnty
+bikeTest$rentedBikes[bikeTest$rentedBikes!=0]=1
+View(bikeTest)
+
+
+```
+
+
+```{r}
+
+### Splitting on train and test datasets 
+
+biketrain<-subset(bike_final,bike_final$StartDay %in% c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19))
+biketrain<-as.data.frame(biketrain)
+View(biketrain)
+
+as.data.frame(biketest1)
+
+biketest1<-subset(bike_final,bike_final$StartDay %in% c(20,21,22,23,24,25,26,27,28,29,30,31))
+View(biketest1)
+
+View(bike_final)
+
+```
+
+```{R}
+
+
+##### Linear regression #####
+
+
+biketest1<-biketest1[,-6]
+
+
+
+predict_bikes = lm(n~StartDay+StartMonth+StartYear+FromStationId+StartHour+Mean.Temp+Mena.Humidity+Mean.Visib+Mean.Wind+Types+Weekend+Holiday,data=biketrain)
+summary(predict_bikes)
+
+summary(biketrain$StartDay)
+bikeResult<- predict(predict_bikes,newdata = biketest1)
+table(bikeResult <0)
+
+
 
 
 ```
