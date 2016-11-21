@@ -271,6 +271,59 @@ write.csv(bike, file = "./bike.csv", row.names = FALSE)
 
 ```
 
+```{r}
+
+##################### This Section is to make exploratory graph #######################
+
+## Trying to make some useful graphs 
+
+newBike <- bike
+
+## Delete the row that has month 6
+newBike <- newBike[!newBike$StartMonth==6,]
+
+newBike$StartHour <- as.numeric(levels(newBike$StartHour))[newBike$StartHour]
+newBike$StartDay <- as.numeric(levels(newBike$StartDay))[newBike$StartDay]
+#newBike$StartMonth <- as.numeric(levels(newBike$StartMonth))[newBike$StartMonth]
+#newBike$StartYear <- as.numeric(levels(newBike$StartYear))[newBike$StartYear]
+
+newBike$StopHour <- as.numeric(levels(newBike$StopHour))[newBike$StopHour]
+newBike$StopDay <- as.numeric(levels(newBike$StopDay))[newBike$StopDay]
+#newBike$StopMonth <- as.numeric(levels(newBike$StopMonth))[newBike$StopMonth]
+#newBike$StopYear <- as.numeric(levels(newBike$StopYear))[newBike$StopYear]
+
+
+
+
+### The Dirstibution of bike rented per hours 
+ggplot(newBike, aes(StartHour, fill=StartYear))  + ggtitle("Rented Bikes Per Hour") +
+  labs(x="Hour")  + geom_density(alpha=0.5) +  theme_bw()
+
+### The Dirstibution of bike rented per Day 
+ggplot(newBike, aes(StartDay, fill=StartMonth))  + ggtitle("Rented Bikes Per Day") +
+  labs(x="Day")  + geom_histogram(binwidth = 0.5) +  theme_bw() + facet_grid(StartMonth~StartYear)
+
+## For the month
+ggplot(newBike, aes(StartMonth, fill = StartYear)) + geom_bar()
+
+##### for Stop time ############
+
+
+### The Dirstibution of bike rented per hours 
+ggplot(newBike, aes(StopHour, fill=StopYear))  + ggtitle("Rented Bikes Returned per hour") +
+  labs(x="Hour")  + geom_density(alpha=0.5) +  theme_bw()
+
+### The Dirstibution of bike rented per Day 
+ggplot(newBike, aes(StopDay, fill=StopMonth))  + ggtitle("Rented Bikes Returned Per Day") +
+  labs(x="Day")  + geom_histogram(binwidth = 0.5) +  theme_bw() + facet_grid(StopMonth~StopYear)
+
+## For the month
+ggplot(newBike, aes(StopMonth, fill = StopYear)) + geom_bar()
+
+
+```
+
+
 
 ```{r}
 
@@ -372,6 +425,30 @@ bike_starttime <- arrange(bike_starttime, StartYear, StartMonth, StartDay)
 bike_stoptime <- merge(aggregate_stoptime_day, weather_holidays, by.x = c('StopDay','StopMonth','StopYear'), by.y = c('Day','Month','Year'))
 bike_stoptime <- arrange(bike_stoptime, StopYear, StopMonth, StopDay)
 
+```
+
+```{r}
+
+### Make useful graph for the starttime 
+
+### We need to see the correlation between the weather and the number of rented bikes 
+## As the temprature increase the number of bikes rented increase 
+ggplot(bike_starttime, aes(x=Mean.Temp, y=n)) + geom_point(shape=1) + geom_smooth(method="lm",position = "identity" ,se = FALSE) + theme_bw() + ggtitle("Temperature effect on number of rented bikes")
+
+### Check it with the holiday
+ggplot(bike_starttime, aes(x=Mean.Temp, y=n, color = Holiday)) + geom_point(shape=1) +  theme_bw() + ggtitle("Temperature effect on number of rented bikes on holidays")
+
+
+### No effect with humidity
+ggplot(bike_starttime, aes(x=Mena.Humidity, y=n)) + geom_point(shape=1) + geom_smooth(method="lm",position = "identity" ,se = FALSE) + theme_bw() + ggtitle("Temperature effect on number of rented bikes")
+
+### There is a slighlty negative correlation with wind
+ggplot(bike_starttime, aes(x=Mean.Wind , y=n)) + geom_point(shape=1) + geom_smooth(method="lm",position = "identity" ,se = FALSE) + theme_bw() + ggtitle("Temperature effect on number of rented bikes")
+
+```
+
+
+```{r}
 
 ####### Not Right - Must be fixed #####
 #######################
@@ -458,7 +535,7 @@ stoptime_holiday <- merge(stoptime, holiday, by.x = c('StopDay','StopMonth','Sto
 ```{r}
 ### Grouping by day to make useful viusalization 
 
-aggregate_starttime_day_weatherHoliday <- merge(aggregate_starttime, weather_holidays, by.x = c('StartDay','StartMonth','StartYear'), by.y = c('Day','Month','Year'))
+aggregate_starttime_day_weatherHoliday <- merge(aggregate_starttime_day, weather_holidays, by.x = c('StartDay','StartMonth','StartYear'), by.y = c('Day','Month','Year'))
 
 aggregate_starttime_day_weatherHoliday <- aggregate_starttime_day_weatherHoliday %>% arrange(StartYear,StartMonth,StartDay)
 
@@ -501,7 +578,7 @@ stoptime_holiday_no_hour <- aggregate(n ~ StopHour, data = stoptime_holiday_no, 
 
 ## Merging 
 
-startstoptime_DMY <- merge(aggregate_starttime,aggregate_stoptime, by.x = c("StartDay","StartMonth","StartYear"), by.y = c("StopDay","StopMonth","StopYear"))
+startstoptime_DMY <- merge(aggregate_starttime_day,aggregate_stoptime_day, by.x = c("StartDay","StartMonth","StartYear"), by.y = c("StopDay","StopMonth","StopYear"))
 
 startstop_holiday_yes_hour <- merge(starttime_holiday_yes_hour, stoptime_holiday_yes_hour, by.x = "StartHour", by.y = "StopHour")
 
@@ -522,9 +599,9 @@ startstop_holiday_no_hour <- rename(startstop_holiday_no_hour,  c("n.x"="Out", "
 ## Graphs
 
 
-ggplot(aggregate_starttime, aes(x=n , fill = as.factor(StartYear))) + geom_density()
-ggplot(aggregate_starttime, aes(x=log(n) , fill = as.factor(StartMonth))) + geom_density()
-ggplot(aggregate_starttime, aes(x=n , fill = as.factor(StartDay))) + geom_density()
+ggplot(aggregate_starttime_day, aes(x=n , fill = as.factor(StartYear))) + geom_density()
+ggplot(aggregate_starttime_day, aes(x=log(n) , fill = as.factor(StartMonth))) + geom_density()
+ggplot(aggregate_starttime_day, aes(x=n , fill = as.factor(StartDay))) + geom_density()
 
 ## based on weather types
 ggplot(aggregate_starttime_day_weatherHoliday, aes(x=n, fill = as.factor(Types))) + geom_density()
