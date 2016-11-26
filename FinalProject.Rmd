@@ -519,6 +519,11 @@ ytest = test$n
 
 m1 = lm(n~., data=train)
 summary(m1)
+hist(m1$residuals)
+qqnorm(m1$residuals)
+qqline(m1$residuals)
+plot(m1$residuals ~ m1$fitted.values)
+
 
 ptest = predict(m1,newdata=test)
 prediction_result <-  data.frame(ytest,ptest)
@@ -527,8 +532,8 @@ prediction_result$error = ptest - ytest
 obs = ytest
 error = ptest - obs
 
-rmse=sqrt(mean(error^2))
-rmse
+rmse1=sqrt(mean(error^2))
+rmse1
 
 ## RMSE
 rmse3 <- function(y, f) { sqrt(mean( (y-f)^2 )) } 
@@ -554,9 +559,58 @@ ggplot(data=prediction_result,aes(x=ptest,
 
 
 
+```
 
+```{r}
+library(MASS)
+### Using AIC
+
+stepAIC(m1, direction="backward")
+
+## Smallest AIC
+# Step:  AIC=15691.05
+# lm(formula = n ~ StartMonth + StartYear + StartHour + Mean.Temp + 
+#     Mean.Visib + Types + Holiday, data = train)
+
+
+m2 = lm( n ~ StartMonth + StartYear + StartHour + Mean.Temp + Mean.Visib + Types + Holiday, data = train)
+summary(m2)
+hist(m2$residuals)
+qqnorm(m2$residuals)
+qqline(m2$residuals)
+plot(m2$residuals ~ m2$fitted.values)
+
+
+ptest = predict(m2,newdata=test)
+prediction_result <-  data.frame(ytest,ptest)
+prediction_result$error = ptest - ytest
+
+obs = ytest
+error = ptest - obs
+
+rmse2=sqrt(mean(error^2))
+rmse2
 
 ```
+
+```{r}
+### Linear regression does not work so we have to test the ploynomial regression 
+
+m3 = lm( n ~ StartMonth + StartYear + StartHour + poly(Mean.Temp, degree = 6) + poly(Mean.Visib, degree = 6) + Types + Holiday, data = train)
+
+ptest = predict(m3,newdata=test)
+prediction_result <-  data.frame(ytest,ptest)
+prediction_result$error = ptest - ytest
+
+obs = ytest
+error = ptest - obs
+
+rmse3=sqrt(mean(error^2))
+rmse3
+
+```
+
+
 
 ```{r}
 
