@@ -293,7 +293,9 @@ newBike$StopDay <- as.numeric(levels(newBike$StopDay))[newBike$StopDay]
 #newBike$StopYear <- as.numeric(levels(newBike$StopYear))[newBike$StopYear]
 
 
+```
 
+```{r}
 
 ### The Dirstibution of bike rented per hours 
 ggplot(newBike, aes(StartHour, fill=StartYear))  + ggtitle("Rented Bikes Per Hour") +
@@ -351,15 +353,20 @@ stoptime <- stoptime %>% count(ToStationId, StopHour, StopDay, StopMonth, StopYe
 ## Aggregation for Hour and FromStationId and ToStationid
 
 
+# aggregate_starttime_hour <- starttime %>% 
+#   group_by(FromStationId,StartHour,StartDay,StartMonth,StartYear) %>% 
+#   summarise_each(funs(sum), n) %>% 
+#   arrange(StartYear, StartMonth)
+
 aggregate_starttime_hour <- starttime %>% 
-  group_by(FromStationId,StartHour,StartDay,StartMonth,StartYear) %>% 
+  group_by(StartHour,StartDay,StartMonth,StartYear) %>% 
   summarise_each(funs(sum), n) %>% 
   arrange(StartYear, StartMonth)
 
-aggregate_stoptime_hour <- stoptime %>%
-  group_by(ToStationId,StopHour, StopDay, StopMonth, StopYear) %>%
-  summarise_each(funs(sum), n) %>%
-  arrange(StopYear, StopMonth)
+# aggregate_stoptime_hour <- stoptime %>%
+#   group_by(ToStationId,StopHour, StopDay, StopMonth, StopYear) %>%
+#   summarise_each(funs(sum), n) %>%
+#   arrange(StopYear, StopMonth)
 
 ```
 
@@ -371,6 +378,8 @@ aggregate_starttime_day <- starttime %>%
   group_by(FromStationId,StartDay,StartMonth,StartYear) %>% 
   summarise_each(funs(sum), n) %>% 
   arrange(StartYear, StartMonth)
+
+
 
 aggregate_stoptime_day <- stoptime %>%
   group_by(ToStationId,StopDay, StopMonth, StopYear) %>%
@@ -463,38 +472,86 @@ View(bikeTest)
 
 
 ```{r}
+### Change the factors to numerics for prediction 
+
+bike_final$StartHour <- as.numeric(levels(bike_final$StartHour))[bike_final$StartHour]
+bike_final$StartDay <- as.numeric(levels(bike_final$StartDay))[bike_final$StartDay]
+bike_final$StartMonth <- as.numeric(levels(bike_final$StartMonth))[bike_final$StartMonth]
+bike_final$StartYear <- as.numeric(levels(bike_final$StartYear))[bike_final$StartYear]
+
+str(bike_final)
+```
+
+```{r}
+
+
+######################### Linear Regression ##############################
+#########################################################################
 
 ### Splitting on train and test datasets 
 
 biketrain<-subset(bike_final,bike_final$StartDay %in% c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19))
-biketrain<-as.data.frame(biketrain)
-View(biketrain)
 
-as.data.frame(biketest1)
 
-biketest1<-subset(bike_final,bike_final$StartDay %in% c(20,21,22,23,24,25,26,27,28,29,30,31))
-View(biketest1)
+train<-as.data.frame(biketrain)
+View(train)
 
-View(bike_final)
+
+biketest<-subset(bike_final,bike_final$StartDay %in% c(20,21,22,23,24,25,26,27,28,29,30,31))
+test <- as.data.frame(biketest)
+View(test)
+
+str(train)
+str(test)
 
 ```
+
 
 ```{R}
 
 
 ##### Linear regression #####
 
+### Split the data to training and testing 
 
-biketest1<-biketest1[,-6]
+ytrain = train$n
+ytest = test$n
+
+m1 = lm(n~., data=train)
+summary(m1)
+
+ptest = predict(m1,newdata=test)
+prediction_result <-  data.frame(ytest,ptest)
+prediction_result$error = ptest - ytest
+
+obs = ytest
+error = ptest - obs
+
+rmse=sqrt(mean(error^2))
+rmse
+
+## RMSE
+rmse3 <- function(y, f) { sqrt(mean( (y-f)^2 )) } 
+rmse3(ytest,ptest)
 
 
+#### Plotting 
 
-predict_bikes = lm(n~StartDay+StartMonth+StartYear+FromStationId+StartHour+Mean.Temp+Mena.Humidity+Mean.Visib+Mean.Wind+Types+Weekend+Holiday,data=biketrain)
-summary(predict_bikes)
+ggplot(data=prediction_result,aes(x=ptest,y=ytest)) + geom_point(alpha=0.2,color="black") + 
+  geom_smooth(aes(x=ptest,
+       y=ytest),color="black") +
+  geom_line(aes(x=ytest,
+                y=ytest,color="blue")) 
 
-summary(biketrain$StartDay)
-bikeResult<- predict(predict_bikes,newdata = biketest1)
-table(bikeResult <0)
+
+### ploting the residual 
+ggplot(data=prediction_result,aes(x=ptest,
+                      y=error)) +
+  geom_point(alpha=0.2,color="black") +
+  geom_smooth(aes(x=ptest,
+                  y=error,
+              color="black"))
+
 
 
 
